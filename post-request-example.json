@@ -1,0 +1,13 @@
+/// message event
+
+2023-05-09 18: 27: 00 {'token': 'w7L4Vdj1ysZBdbLGybSmyroN', 'team_id': 'T039VUW5B3N', 'context_team_id': 'T039VUW5B3N', 'context_enterprise_id': None, 'api_app_id': 'A039VUYPJF6', 'event': {'type': 'message', 'text': '', 'files': [
+			{'id': 'F056JAGP7T9', 'created': 1683656816, 'timestamp': 1683656816, 'name': 'test-1.mp3', 'title': 'test-1.mp3', 'mimetype': 'audio/mpeg', 'filetype': 'mp3', 'pretty_type': 'MP3', 'user': 'U039LV1CHT8', 'user_team': 'T039VUW5B3N', 'editable': False, 'size': 383103, 'mode': 'hosted', 'is_external': False, 'external_type': '', 'is_public': True, 'public_url_shared': False, 'display_as_bot': False, 'username': '', 'transcription': {'status': 'processing'
+				}, 'url_private': 'https: //files.slack.com/files-tmb/T039VUW5B3N-F056JAGP7T9-34812002d0/test-1_audio.mp4', 'url_private_download': 'https://files.slack.com/files-pri/T039VUW5B3N-F056JAGP7T9/download/test-1.mp3', 'duration_ms': 30537, 'aac': 'https://files.slack.com/files-tmb/
+
+
+/// file_shared event
+
+2023-05-09 18:27:00 {'token': 'w7L4Vdj1ysZBdbLGybSmyroN', 'team_id': 'T039VUW5B3N', 'context_team_id': 'T039VUW5B3N', 'context_enterprise_id': None, 'api_app_id': 'A039VUYPJF6', 'event': {'type': 'file_shared', 'file_id': 'F056JAGP7T9', 'user_id': 'U039LV1CHT8', 'file': {'id': 'F056JAGP7T9'}, 'channel_id': 'C03AHBKAC5N', 'event_ts': '1683656820.002500'}, 'type': 'event_callback', 'event_id': 'Ev056VU1JYQM', 'event_time': 1683656820, 'authorizations': [{'enterprise_id': None, 'team_id': 'T039VUW5B3N', 'user_id': 'U0574EBJEPJ', 'is_bot': True, 'is_enterprise_install': False}], 'is_ext_shared_channel': False, 'event_context': '4-eyJldCI6ImZpbGVfc2hhcmVkIiwidGlkIjoiVDAzOVZVVzVCM04iLCJhaWQiOiJBMDM5VlVZUEpGNiIsImNpZCI6IkMwM0FIQktBQzVOIn0'}
+
+so if event.type == file_shared,
+file_id = event.file_id
