@@ -56,11 +56,36 @@ def slack_event_handler():
             file_vtt = get_file_info(file_id)
             save_location = event_id + '.vtt'
             vtt_file_for_conversion = download_vtt_file(file_vtt, save_location)
+            txt_file_output = event_id + ".txt"
+            convert_vtt_to_labels(vtt_file_for_conversion, txt_file_output)
             mark_event_as_processed(event_id)
             print(f"The file with event ID {event_id} has been processed.")
     
     return "OK"
-                                            
+
+def convert_vtt_to_labels(vtt_file, labels_file):
+    with open(vtt_file, 'r') as vtt:
+        vtt_lines = vtt.readlines()
+
+    labels = []
+    for line in vtt_lines:
+        line_index = vtt_lines.index(line)
+        line = line.strip()
+        if line.startswith('00:'):  # Assuming timestamp format: hh:mm:ss.sss
+            start_time, end_time = line.split(' --> ')
+            start_time_hours, start_time_minutes, start_time_seconds = start_time.split(":")
+            start_time_audacity = float(start_time_hours)*3600 + float(start_time_minutes)*60 + float(start_time_seconds)
+            end_time_hours, end_time_minutes, end_time_seconds = end_time.split(":")
+            end_time_audacity = float(end_time_hours)*3600 + float(end_time_minutes)*60 + float(end_time_seconds)
+            label_text = vtt_lines[line_index + 1].strip("- ")  # Get the next line as label text
+            label = f'{start_time_audacity}\t{end_time_audacity}\t{label_text}'
+            labels.append(label)
+
+    with open(labels_file, 'w') as labels_out:
+        labels_out.write(''.join(labels))
+
+    print(f'Successfully converted {vtt_file} to Audacity labels format.')
+
 # download the vtt file
 def download_vtt_file(url, save_path):
     response = requests.get(url, headers=headers)
