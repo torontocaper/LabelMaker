@@ -12,16 +12,14 @@ from slack_sdk.errors import SlackApiError
 dotenv.load_dotenv()
 bot_token = os.environ.get("BOT_TOKEN")
 client = WebClient(token=bot_token)
+headers = {"Authorization": "Bearer " + bot_token}
 
 app = Flask(__name__)
 
 # initiate global variables
 app_id = os.environ.get("APP_ID")
-channel_id = file_id = timestamp = ""
-message_text = f"Thanks for the message."
+channel_id = file_id = timestamp = message_text = ""
 processed_events_list = "processed_events.txt"
-
-headers = {"Authorization": "Bearer " + bot_token}
 
 @app.route('/slack/events', methods=['POST'])
 def slack_event_handler():
@@ -42,7 +40,6 @@ def slack_event_handler():
     global channel_id
     global file_id
     global timestamp
-    global event_processed
 
     if is_event_processed(event_id):
         print(f"Event ID {event_id} has already been processed.")
@@ -52,24 +49,18 @@ def slack_event_handler():
             channel_id = request_data["event"]["channel"]
             timestamp = request_data["event"]["ts"]
             mark_event_as_processed(event_id)
-            print(f"Event ID {event_id} has been processed and marked as completed.")
+            print(f"The message with event ID {event_id} has been processed.")
 
-
-        elif event_type == "file_public" or event_type == "file_shared":
+        elif event_type == "file_shared":
             file_id = request_data["event"]["file_id"]
             file_vtt = get_file_info(file_id)
-            save_location = 'app_test_2.vtt'
+            save_location = event_id + '.vtt'
             vtt_file_for_conversion = download_vtt_file(file_vtt, save_location)
             mark_event_as_processed(event_id)
-            print(f"Event ID {event_id} has been processed and marked as completed.")
+            print(f"The file with event ID {event_id} has been processed.")
     
     return "OK"
                                             
-"""         # avoid infinite loop -- THIS MUST CHANGE
-        if "bot_id" not in request_data["event"] and message_sent == False:
-            send_message(channel_id, message_text, timestamp)
-            message_sent = True """
-
 # download the vtt file
 def download_vtt_file(url, save_path):
     response = requests.get(url, headers=headers)
