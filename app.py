@@ -17,42 +17,71 @@ app = Flask(__name__)
 
 # initiate global variables
 app_id = os.environ.get("APP_ID")
-channel_id = ""
-file_id = ""
-timestamp = ""
-# might not need this // has_file = False
+channel_id = file_id = timestamp = ""
 message_text = f"Thanks for the message."
+processed_events_list = "processed_events.txt"
+
+headers = {"Authorization": "Bearer " + bot_token}
 
 @app.route('/slack/events', methods=['POST'])
 def slack_event_handler():
+
     # get the request data in json format
     request_data = request.get_json()
-    print(request_data)
-    # get the event type
+    
+    ### DON'T DELETE ###
+    # if "challenge" in request_data:
+    #    return request_data["challenge"]
+    ### DON'T DELETE ###
+
+    # get the event type, id
     event_type = request_data["event"]["type"]
+    event_id = request_data["event_id"]
+
     global message_text
     global channel_id
     global file_id
     global timestamp
-           
-    # get the timestamp and channel ID from the "message" event
-    if event_type == "message":
-        channel_id = request_data["event"]["channel"]
-        timestamp = request_data["event"]["ts"]
+    global event_processed
 
-    elif event_type == "file_public" or event_type == "file_shared":
-        file_id = request_data["event"]["file_id"]
-        file_vtt = get_file_info(file_id)
-        message_text = f"Your file id is {file_id} and your vtt file is at {file_vtt}."
+    if is_event_processed(event_id):
+        print(f"Event ID {event_id} has already been processed.")
+    else:        
+        # get the timestamp and channel ID from the "message" event
+        if event_type == "message":
+            channel_id = request_data["event"]["channel"]
+            timestamp = request_data["event"]["ts"]
+            mark_event_as_processed(event_id)
+            print(f"Event ID {event_id} has been processed and marked as completed.")
+
+
+        elif event_type == "file_public" or event_type == "file_shared":
+            file_id = request_data["event"]["file_id"]
+            file_vtt = get_file_info(file_id)
+            save_location = 'app_test_2.vtt'
+            vtt_file_for_conversion = download_vtt_file(file_vtt, save_location)
+            mark_event_as_processed(event_id)
+            print(f"Event ID {event_id} has been processed and marked as completed.")
     
-    # avoid infinite loop
-    if "bot_id" not in request_data["event"]:
-        send_message(channel_id, message_text, timestamp)
-        
     return "OK"
-    
-# get the file info
+                                            
+"""         # avoid infinite loop -- THIS MUST CHANGE
+        if "bot_id" not in request_data["event"] and message_sent == False:
+            send_message(channel_id, message_text, timestamp)
+            message_sent = True """
 
+# download the vtt file
+def download_vtt_file(url, save_path):
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        with open(save_path, 'wb') as file:
+            file.write(response.content)
+        print(f"VTT file downloaded successfully and saved at: {save_path}")
+    else:
+        print(f"Failed to download VTT file. Status code: {response.status_code}")
+    return file
+
+# get the file info
 def get_file_info(file_id):
     response = client.files_info(file=file_id)
     if "vtt" in response["file"]:
@@ -61,8 +90,8 @@ def get_file_info(file_id):
         time.sleep(1)
         get_file_info(file_id)
     return vtt_link
-# send the finished message 
 
+# send the finished message 
 def send_message(channel, message, timestamp):
     client.chat_postMessage(
         text=message,
@@ -71,11 +100,16 @@ def send_message(channel, message, timestamp):
     )
     return "OK"
 
+# check if the event has been handled
+def is_event_processed(event_id):
+    with open(processed_events_list, "r") as file:
+        processed_ids = file.read().splitlines()
+        return event_id in processed_ids
+
+# mark event as processed
+def mark_event_as_processed(event_id):
+    with open(processed_events_list, "a") as file:
+        file.write(event_id + "\n")
+
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-### THE BELOW CODE HANDLES VERIFICATION REQUESTS -- DON'T DELETE ###
-
-""" if "challenge" in request_data:
-    return request_data["challenge"] """
