@@ -28,8 +28,8 @@ def slack_event_handler():
     request_data = request.get_json()
     
     ### DON'T DELETE ###
-    # if "challenge" in request_data:
-    #    return request_data["challenge"]
+    if "challenge" in request_data:
+        return request_data["challenge"]
     ### DON'T DELETE ###
 
     # get the event type, id
@@ -95,7 +95,7 @@ def download_vtt_file(url, save_path):
         print(f"VTT file downloaded successfully and saved at: {save_path}")
     else:
         print(f"Failed to download VTT file. Status code: {response.status_code}")
-    return file
+    return save_path
 
 # get the file info
 def get_file_info(file_id):
