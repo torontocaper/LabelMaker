@@ -1,1 +1,9 @@
+# ignore .env
 .env
+
+#ignore all text files except the events log
+*.txt
+!processed_events.txt
+
+#ignore all vtt files
+*.vtt
