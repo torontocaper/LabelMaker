@@ -18,7 +18,7 @@ headers = {"Authorization": "Bearer " + bot_token}
 # initiate global variables
 app_id = os.environ.get('APP_ID')
 channel_id = file_id = timestamp = message_text = ""
-processed_events_list = "/home/torontocaper/slack-app-transcriber/processed_events.txt" #that's going to be an issue for local testing
+processed_events_list = "processed_events.txt" #that's going to be an issue for local testing
 
 app = Flask(__name__)
 @app.route('/slack/events', methods=['POST'])
@@ -56,7 +56,12 @@ def slack_event_handler():
             save_location = event_id + '.vtt'
             vtt_file_for_conversion = download_vtt_file(file_vtt, save_location)
             txt_file_output = event_id + ".txt"
-            convert_vtt_to_labels(vtt_file_for_conversion, txt_file_output)
+            finished_txt_file = convert_vtt_to_labels(vtt_file_for_conversion, txt_file_output)
+            client.files_upload(
+                channels=channel_id,
+                initial_comment="Here's a text file",
+                file=finished_txt_file
+            )
             mark_event_as_processed(event_id)
             print(f"The file with event ID {event_id} has been processed.")
 
@@ -84,6 +89,7 @@ def convert_vtt_to_labels(vtt_file, labels_file):
         labels_out.write(''.join(labels))
 
     print(f'Successfully converted {vtt_file} to Audacity labels format.')
+    return labels_file
 
 # download the vtt file
 def download_vtt_file(url, save_path):
@@ -126,5 +132,5 @@ def mark_event_as_processed(event_id):
     with open(processed_events_list, "a") as file:
         file.write(event_id + "\n")
 
-# if __name__ == '__main__':
-#    app.run(debug=True)
+if __name__ == '__main__':
+    app.run(debug=True)
