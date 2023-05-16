@@ -18,7 +18,7 @@ headers = {"Authorization": "Bearer " + bot_token}
 # initiate global variables
 app_id = os.environ.get('APP_ID')
 channel_id = file_id = timestamp = message_text = ""
-processed_events_list = "/home/torontocaper/slack-app-transcriber/processed_events.txt"
+processed_events_list = "/home/torontocaper/slack-app-transcriber/processed_events.txt" #that's going to be an issue for local testing
 
 app = Flask(__name__)
 @app.route('/slack/events', methods=['POST'])
