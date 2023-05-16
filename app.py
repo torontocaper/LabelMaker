@@ -1,13 +1,9 @@
-activate_this = '/home/torontocaper/.virtualenvs/slack-app-transcriber-venv/bin/activate_this.py'
-exec(open(activate_this).read(), {'__file__': activate_this})
-
-# import json
 import os
 import time
 
 from dotenv import load_dotenv
 import requests
-from flask import Flask, request#, jsonify
+from flask import Flask, request
 from slack_sdk import WebClient
 # from slack_sdk.errors import SlackApiError
 
@@ -22,11 +18,7 @@ headers = {"Authorization": "Bearer " + bot_token}
 # initiate global variables
 app_id = os.environ.get('APP_ID')
 channel_id = file_id = timestamp = message_text = ""
-processed_events_list = "processed_events.txt"
-
-
-
-print(os.environ)
+processed_events_list = "/home/torontocaper/slack-app-transcriber/processed_events.txt"
 
 app = Flask(__name__)
 @app.route('/slack/events', methods=['POST'])
@@ -35,10 +27,9 @@ def slack_event_handler():
     # get the request data in json format
     request_data = request.get_json()
 
-    ### DON'T DELETE ###
+    # authenticate URL
     if "challenge" in request_data:
         return request_data["challenge"]
-    ### DON'T DELETE ###
 
     # get the event type, id
     event_type = request_data["event"]["type"]
