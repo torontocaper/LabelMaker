@@ -1,32 +1,40 @@
-import json
+activate_this = '/home/torontocaper/.virtualenvs/slack-app-transcriber-venv/bin/activate_this.py'
+exec(open(activate_this).read(), {'__file__': activate_this})
+
+# import json
 import os
 import time
 
-import dotenv
+from dotenv import load_dotenv
 import requests
-from flask import Flask, jsonify, request
+from flask import Flask, request#, jsonify
 from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
+# from slack_sdk.errors import SlackApiError
+
+load_dotenv()
 
 # get the bot token for authentication and fire up the slack client
-dotenv.load_dotenv()
-bot_token = os.environ.get("BOT_TOKEN")
+bot_token = os.environ.get('BOT_TOKEN')
+print(bot_token)
 client = WebClient(token=bot_token)
 headers = {"Authorization": "Bearer " + bot_token}
 
-app = Flask(__name__)
-
 # initiate global variables
-app_id = os.environ.get("APP_ID")
+app_id = os.environ.get('APP_ID')
 channel_id = file_id = timestamp = message_text = ""
 processed_events_list = "processed_events.txt"
 
+
+
+print(os.environ)
+
+app = Flask(__name__)
 @app.route('/slack/events', methods=['POST'])
 def slack_event_handler():
 
     # get the request data in json format
     request_data = request.get_json()
-    
+
     ### DON'T DELETE ###
     if "challenge" in request_data:
         return request_data["challenge"]
@@ -43,7 +51,7 @@ def slack_event_handler():
 
     if is_event_processed(event_id):
         print(f"Event ID {event_id} has already been processed.")
-    else:        
+    else:
         # get the timestamp and channel ID from the "message" event
         if event_type == "message":
             channel_id = request_data["event"]["channel"]
@@ -60,7 +68,7 @@ def slack_event_handler():
             convert_vtt_to_labels(vtt_file_for_conversion, txt_file_output)
             mark_event_as_processed(event_id)
             print(f"The file with event ID {event_id} has been processed.")
-    
+
     return "OK"
 
 def convert_vtt_to_labels(vtt_file, labels_file):
@@ -107,7 +115,7 @@ def get_file_info(file_id):
         get_file_info(file_id)
     return vtt_link
 
-# send the finished message 
+# send the finished message
 def send_message(channel, message, timestamp):
     client.chat_postMessage(
         text=message,
@@ -127,5 +135,5 @@ def mark_event_as_processed(event_id):
     with open(processed_events_list, "a") as file:
         file.write(event_id + "\n")
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# if __name__ == '__main__':
+#    app.run(debug=True)
