@@ -1,17 +1,17 @@
 import os
 import time
 
-from dotenv import load_dotenv
 import requests
+from dotenv import load_dotenv
 from flask import Flask, request
 from slack_sdk import WebClient
+
 # from slack_sdk.errors import SlackApiError
 
 load_dotenv()
 
 # get the bot token for authentication and fire up the slack client
 bot_token = os.environ.get('BOT_TOKEN')
-print(bot_token)
 client = WebClient(token=bot_token)
 headers = {"Authorization": "Bearer " + bot_token}
 
@@ -35,6 +35,9 @@ def slack_event_handler():
     event_type = request_data["event"]["type"]
     event_id = request_data["event_id"]
 
+    # print them
+    print(f"Event ID: {event_id}; Event Type: {event_type}")
+
     global message_text
     global channel_id
     global file_id
@@ -47,19 +50,30 @@ def slack_event_handler():
         if event_type == "message":
             channel_id = request_data["event"]["channel"]
             timestamp = request_data["event"]["ts"]
+            print(timestamp)
             mark_event_as_processed(event_id)
             print(f"The message with event ID {event_id} has been processed.")
 
+        # handle emoji reactions
+        elif event_type == "reaction_added":
+            channel_id = request_data["event"]["item"]["channel"]
+            timestamp = request_data["event"]["item"]["ts"]
+            mark_event_as_processed(event_id)
+            print(f"The reaction with event ID {event_id} has been processed.")
+                    
+        #get the file id from the "file_shared" event
         elif event_type == "file_shared":
             file_id = request_data["event"]["file_id"]
+            # i think i need to separate this into a separate function/if statement based on emoji reaction
             file_vtt = get_file_info(file_id)
             save_location = event_id + '.vtt'
             vtt_file_for_conversion = download_vtt_file(file_vtt, save_location)
             txt_file_output = event_id + ".txt"
             finished_txt_file = convert_vtt_to_labels(vtt_file_for_conversion, txt_file_output)
-            client.files_upload(
-                channels=channel_id,
-                initial_comment="Here's a text file",
+            client.files_upload_v2(
+                channel=channel_id,
+                thread_ts=timestamp,
+                initial_comment="Thanks for uploading audio! Here's your labels file:",
                 file=finished_txt_file
             )
             mark_event_as_processed(event_id)
@@ -75,7 +89,7 @@ def convert_vtt_to_labels(vtt_file, labels_file):
     for line in vtt_lines:
         line_index = vtt_lines.index(line)
         line = line.strip()
-        if line.startswith('00:'):  # Assuming timestamp format: hh:mm:ss.sss
+        if line.startswith('00:'):
             start_time, end_time = line.split(' --> ')
             start_time_hours, start_time_minutes, start_time_seconds = start_time.split(":")
             start_time_audacity = float(start_time_hours)*3600 + float(start_time_minutes)*60 + float(start_time_seconds)
@@ -91,7 +105,6 @@ def convert_vtt_to_labels(vtt_file, labels_file):
     print(f'Successfully converted {vtt_file} to Audacity labels format.')
     return labels_file
 
-# download the vtt file
 def download_vtt_file(url, save_path):
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
@@ -102,7 +115,6 @@ def download_vtt_file(url, save_path):
         print(f"Failed to download VTT file. Status code: {response.status_code}")
     return save_path
 
-# get the file info
 def get_file_info(file_id):
     response = client.files_info(file=file_id)
     if "vtt" in response["file"]:
@@ -112,22 +124,11 @@ def get_file_info(file_id):
         get_file_info(file_id)
     return vtt_link
 
-# send the finished message
-def send_message(channel, message, timestamp):
-    client.chat_postMessage(
-        text=message,
-        channel=channel,
-        thread_ts=timestamp
-    )
-    return "OK"
-
-# check if the event has been handled
 def is_event_processed(event_id):
     with open(processed_events_list, "r") as file:
         processed_ids = file.read().splitlines()
         return event_id in processed_ids
 
-# mark event as processed
 def mark_event_as_processed(event_id):
     with open(processed_events_list, "a") as file:
         file.write(event_id + "\n")
