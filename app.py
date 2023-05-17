@@ -31,12 +31,8 @@ def slack_event_handler():
     if "challenge" in request_data:
         return request_data["challenge"]
 
-    # get the event type, id
-    event_type = request_data["event"]["type"]
+    # get the event id
     event_id = request_data["event_id"]
-
-    # print them
-    print(f"Event ID: {event_id}; Event Type: {event_type}")
 
     global message_text
     global channel_id
@@ -46,31 +42,23 @@ def slack_event_handler():
     if is_event_processed(event_id):
         print(f"This event (with ID {event_id}) has already been processed.")
     
-    elif event_type != "reaction_added":
-        return "OK"
-
     else:
         # handle emoji reactions
-        if request_data["event"]["reaction"] != "label":
-            print("Wrong emoji!")
+        reaction_type = request_data["event"]["reaction"]
+        if reaction_type != "label":
+            print(f"Can't compute :{reaction_type}: reaction!")
         else:        
             channel_id = request_data["event"]["item"]["channel"]
             timestamp = request_data["event"]["item"]["ts"]
-            
             conversation = client.conversations_replies(
                 channel=channel_id,
                 ts=timestamp
             )
-
             messages = conversation.get("messages")
             root_message = messages[0]
 
             if "files" in root_message:   
-                print("There's a file here somewhere...")
                 file_id = root_message["files"][0]["id"]
-                print(f"And its file ID is {file_id}.")
-            
-                # i think i need to separate this into a separate function/if statement based on emoji reaction
                 file_vtt = get_file_info(file_id)
                 save_location = event_id + '.vtt'
                 vtt_file_for_conversion = download_vtt_file(file_vtt, save_location)
@@ -79,7 +67,7 @@ def slack_event_handler():
                 client.files_upload_v2(
                 channel=channel_id,
                 thread_ts=timestamp,
-                initial_comment="Thanks for uploading audio! Here's your labels file:",
+                initial_comment="Thanks for using LabelMaker! Here's your labels file:",
                 file=finished_txt_file
             )
 
