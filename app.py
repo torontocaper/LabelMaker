@@ -45,23 +45,32 @@ def slack_event_handler():
 
     if is_event_processed(event_id):
         print(f"Event ID {event_id} has already been processed.")
+    
     else:
-        # get the timestamp and channel ID from the "message" event
-        if event_type == "message":
-            channel_id = request_data["event"]["channel"]
-            timestamp = request_data["event"]["ts"]
-            print(timestamp)
-            mark_event_as_processed(event_id)
-            print(f"The message with event ID {event_id} has been processed.")
-
         # handle emoji reactions
-        elif event_type == "reaction_added":
+        if event_type == "reaction_added":
             channel_id = request_data["event"]["item"]["channel"]
             timestamp = request_data["event"]["item"]["ts"]
+            
+            conversation = client.conversations_replies(
+                channel=channel_id,
+                ts=timestamp
+            )
+
+            messages = conversation.get("messages")
+            root_message = messages[0]
+
+            print(root_message)
+
+            if "files" in root_message:   
+                print("There's a file here somewhere!")
+                file_id = root_message["files"][0]["id"]
+                print(f"File ID: {file_id}")
+ 
             mark_event_as_processed(event_id)
             print(f"The reaction with event ID {event_id} has been processed.")
                     
-        #get the file id from the "file_shared" event
+        # get the file id from the "file_shared" event
         elif event_type == "file_shared":
             file_id = request_data["event"]["file_id"]
             # i think i need to separate this into a separate function/if statement based on emoji reaction
