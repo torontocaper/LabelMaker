@@ -44,11 +44,16 @@ def slack_event_handler():
     global timestamp
 
     if is_event_processed(event_id):
-        print(f"Event ID {event_id} has already been processed.")
+        print(f"This event (with ID {event_id}) has already been processed.")
     
+    elif event_type != "reaction_added":
+        return "OK"
+
     else:
         # handle emoji reactions
-        if event_type == "reaction_added":
+        if request_data["event"]["reaction"] != "label":
+            print("Wrong emoji!")
+        else:        
             channel_id = request_data["event"]["item"]["channel"]
             timestamp = request_data["event"]["item"]["ts"]
             
@@ -60,33 +65,26 @@ def slack_event_handler():
             messages = conversation.get("messages")
             root_message = messages[0]
 
-            print(root_message)
-
             if "files" in root_message:   
-                print("There's a file here somewhere!")
+                print("There's a file here somewhere...")
                 file_id = root_message["files"][0]["id"]
-                print(f"File ID: {file_id}")
- 
-            mark_event_as_processed(event_id)
-            print(f"The reaction with event ID {event_id} has been processed.")
-                    
-        # get the file id from the "file_shared" event
-        elif event_type == "file_shared":
-            file_id = request_data["event"]["file_id"]
-            # i think i need to separate this into a separate function/if statement based on emoji reaction
-            file_vtt = get_file_info(file_id)
-            save_location = event_id + '.vtt'
-            vtt_file_for_conversion = download_vtt_file(file_vtt, save_location)
-            txt_file_output = event_id + ".txt"
-            finished_txt_file = convert_vtt_to_labels(vtt_file_for_conversion, txt_file_output)
-            client.files_upload_v2(
+                print(f"And its file ID is {file_id}.")
+            
+                # i think i need to separate this into a separate function/if statement based on emoji reaction
+                file_vtt = get_file_info(file_id)
+                save_location = event_id + '.vtt'
+                vtt_file_for_conversion = download_vtt_file(file_vtt, save_location)
+                txt_file_output = event_id + ".txt"
+                finished_txt_file = convert_vtt_to_labels(vtt_file_for_conversion, txt_file_output)
+                client.files_upload_v2(
                 channel=channel_id,
                 thread_ts=timestamp,
                 initial_comment="Thanks for uploading audio! Here's your labels file:",
                 file=finished_txt_file
             )
+
             mark_event_as_processed(event_id)
-            print(f"The file with event ID {event_id} has been processed.")
+            print(f"The reaction with event ID {event_id} has been processed.")
 
     return "OK"
 
