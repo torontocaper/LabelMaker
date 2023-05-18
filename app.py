@@ -109,7 +109,8 @@ def get_file_info(file_id):
     if "vtt" in response["file"]:
         vtt_link = response["file"]["vtt"]
     else:
-        time.sleep(1)
+        print("No transcript generated yet. Trying again in five seconds.")
+        time.sleep(5)
         get_file_info(file_id)
     return vtt_link
 
