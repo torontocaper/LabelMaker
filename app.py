@@ -65,7 +65,9 @@ def slack_event_handler():
             initial_comment="Thanks for using LabelMaker! Here's your labels file:",
             file=finished_txt_file
         )
-        
+            os.remove(vtt_file_for_conversion)
+            os.remove(finished_txt_file)
+
     return "OK"
 
 def convert_vtt_to_labels(vtt_file, labels_file):
