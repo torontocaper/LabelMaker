@@ -18,7 +18,6 @@ headers = {"Authorization": "Bearer " + bot_token}
 # initiate global variables
 app_id = os.environ.get('APP_ID')
 channel_id = file_id = timestamp = message_text = ""
-processed_events_list = "processed_events.txt" #that's going to be an issue for local testing
 
 app = Flask(__name__)
 @app.route('/slack/events', methods=['POST'])
@@ -39,41 +38,34 @@ def slack_event_handler():
     global file_id
     global timestamp
 
-    if is_event_processed(event_id):
-        print(f"This event (with ID {event_id}) has already been processed.")
-    
-    else:
-        # handle emoji reactions
-        reaction_type = request_data["event"]["reaction"]
-        if reaction_type != "label":
-            print(f"Can't compute :{reaction_type}: reaction!")
-        else:        
-            channel_id = request_data["event"]["item"]["channel"]
-            timestamp = request_data["event"]["item"]["ts"]
-            conversation = client.conversations_replies(
-                channel=channel_id,
-                ts=timestamp
-            )
-            messages = conversation.get("messages")
-            root_message = messages[0]
+    # handle emoji reactions
+    reaction_type = request_data["event"]["reaction"]
+    if reaction_type != "label":
+        print(f"Can't compute :{reaction_type}: reaction!")
+    else:        
+        channel_id = request_data["event"]["item"]["channel"]
+        timestamp = request_data["event"]["item"]["ts"]
+        conversation = client.conversations_replies(
+            channel=channel_id,
+            ts=timestamp
+        )
+        messages = conversation.get("messages")
+        root_message = messages[0]
 
-            if "files" in root_message:   
-                file_id = root_message["files"][0]["id"]
-                file_vtt = get_file_info(file_id)
-                save_location = event_id + '.vtt'
-                vtt_file_for_conversion = download_vtt_file(file_vtt, save_location)
-                txt_file_output = event_id + ".txt"
-                finished_txt_file = convert_vtt_to_labels(vtt_file_for_conversion, txt_file_output)
-                client.files_upload_v2(
-                channel=channel_id,
-                thread_ts=timestamp,
-                initial_comment="Thanks for using LabelMaker! Here's your labels file:",
-                file=finished_txt_file
-            )
-
-            mark_event_as_processed(event_id)
-            print(f"The reaction with event ID {event_id} has been processed.")
-
+        if "files" in root_message:   
+            file_id = root_message["files"][0]["id"]
+            file_vtt = get_file_info(file_id)
+            save_location = event_id + '.vtt'
+            vtt_file_for_conversion = download_vtt_file(file_vtt, save_location)
+            txt_file_output = event_id + ".txt"
+            finished_txt_file = convert_vtt_to_labels(vtt_file_for_conversion, txt_file_output)
+            client.files_upload_v2(
+            channel=channel_id,
+            thread_ts=timestamp,
+            initial_comment="Thanks for using LabelMaker! Here's your labels file:",
+            file=finished_txt_file
+        )
+        
     return "OK"
 
 def convert_vtt_to_labels(vtt_file, labels_file):
@@ -118,15 +110,6 @@ def get_file_info(file_id):
         time.sleep(1)
         get_file_info(file_id)
     return vtt_link
-
-def is_event_processed(event_id):
-    with open(processed_events_list, "r") as file:
-        processed_ids = file.read().splitlines()
-        return event_id in processed_ids
-
-def mark_event_as_processed(event_id):
-    with open(processed_events_list, "a") as file:
-        file.write(event_id + "\n")
 
 if __name__ == '__main__':
     app.run(debug=True)
