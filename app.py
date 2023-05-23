@@ -8,7 +8,7 @@ from flask import Flask, request
 from flask_caching import Cache
 from slack_sdk import WebClient
 
-print(f"{datetime.datetime.now()}: This is printed from outside any function.")
+print(f"{datetime.datetime.now()}: LabelMaker is starting up. Let's make some labels!")
 
 # get the environment variables from .env
 load_dotenv()
@@ -19,7 +19,8 @@ client = WebClient(token=bot_token)
 headers = {"Authorization": "Bearer " + bot_token}
 
 app = Flask(__name__)
-cache = Cache(app, config={'CACHE_TYPE': 'simple'})
+event_cache = []
+print(f"{datetime.datetime.now()}: Current event cache: {event_cache}.")
 
 @app.route('/slack/events', methods=['POST'])
 def slack_event_handler():
@@ -27,10 +28,14 @@ def slack_event_handler():
 
     # get the request data in json format
     request_data = request.get_json()
+
+    global event_cache
     
     # authenticate URL
     if "challenge" in request_data:
-        return request_data["challenge"]
+        challenge_key = request_data["challenge"]
+        print(f"{datetime.datetime.now()}: This is an authentication challenge from Slack. The challenge key is {challenge_key}")
+        return challenge_key
 
     else:
         event_id = request_data["event_id"]
@@ -45,14 +50,18 @@ def slack_event_handler():
     
         print(f"{datetime.datetime.now()}: Event: {event_id}; User: {user_id}; Rxn: {reaction_type}; Chan: {channel_id}; TS: {timestamp}.")
 
-        if cache.get(event_id) is None:
-            print(f"{datetime.datetime.now()}: Event not processed. Starting event processing.")
-            
+        if event_id in event_cache:
+            print(f"{datetime.datetime.now()}: Event {event_id} has already been processed.")
+            return "OK"
+
+        else: 
+            print(f"{datetime.datetime.now()}: Event {event_id} not processed. Starting event processing.")
+            event_cache.append(event_id)
+
             # handle emoji reactions
             if reaction_type != "label":
                 print(f"{datetime.datetime.now()}: Reaction was of type :{reaction_type}:. Ignoring.")
             else:
-                
                 conversation = client.conversations_replies(
                     channel=channel_id,
                     ts=timestamp
@@ -64,6 +73,9 @@ def slack_event_handler():
                     print(f"{datetime.datetime.now()}: File found.")
                     file_id = root_message["files"][0]["id"]
                     file_vtt = get_file_info(file_id)
+                    while file_vtt == "not OK":
+                        print(f"{datetime.datetime.now()}: Slack has not generated a VTT file yet.")
+                        file_vtt = get_file_info(file_id)
                     save_location = event_id + '.vtt'
                     vtt_file_for_conversion = download_vtt_file(file_vtt, save_location)
                     txt_file_output = event_id + ".txt"
@@ -79,24 +91,20 @@ def slack_event_handler():
                     print(f"{datetime.datetime.now()}: Temporary files deleted.")
                 else:
                     print(f"{datetime.datetime.now()}: No file found.")
-            cache.set(event_id, True)
-            print(f"{datetime.datetime.now()}: Event processed.")
+            print(f"{datetime.datetime.now()}: Event {event_id} processed.")
 
-        else:
-            print(f"{datetime.datetime.now()}: Event has already been processed.")
-
+    print(f"{datetime.datetime.now()}: Current event cache: {event_cache}.")
     return "OK"
 
 def get_file_info(file_id):
-    print(f"{datetime.datetime.now()}: Attempting to get VTT file from Slack.")
+    print(f"{datetime.datetime.now()}: Attempting to get VTT file from Slack. This may take some time.")
     response = client.files_info(file=file_id)
-    if "vtt" not in response["file"]:
-        print(f"{datetime.datetime.now()}: Slack has not generated a VTT file yet. Trying again in 10 seconds.")
-        time.sleep(10.0)
-        get_file_info(file_id)
-    else: 
-        print(f"{datetime.datetime.now()}: Transcript generated, link found.")
-        vtt_link = response["file"]["vtt"]
+    while "vtt" not in response["file"]:
+        print(f"{datetime.datetime.now()}: Slack has not generated a VTT file yet. Waiting 1 second, then re-trying.")
+        time.sleep(1.0)
+        response = client.files_info(file=file_id)
+    print(f"{datetime.datetime.now()}: Transcript generated, link found.")
+    vtt_link = response["file"]["vtt"]
     return vtt_link
 
 def download_vtt_file(url, save_path):
@@ -105,7 +113,7 @@ def download_vtt_file(url, save_path):
     if response.status_code == 200:
         with open(save_path, 'wb') as file:
             file.write(response.content)
-        print(f"{datetime.datetime.now()}: VTT file downloaded successfully and saved at: {save_path}")
+        print(f"{datetime.datetime.now()}: VTT file downloaded successfully.")
     else:
         print(f"{datetime.datetime.now()}: Failed to download VTT file. Status code: {response.status_code}")
     return save_path
@@ -131,7 +139,7 @@ def convert_vtt_to_labels(vtt_file, labels_file):
     with open(labels_file, 'w') as labels_out:
         labels_out.write(''.join(labels))
 
-    print(f'{datetime.datetime.now()}: Successfully converted {vtt_file} to Audacity labels format.')
+    print(f'{datetime.datetime.now()}: Successfully converted VTT file to Audacity labels format.')
     return labels_file
 
 if __name__ == '__main__':
