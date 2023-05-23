@@ -112,7 +112,7 @@ def get_file_info(file_id):
     return vtt_link
 
 def download_vtt_file(url, save_path):
-    print(f"{datetime.datetime.now()}: Downloading VTT file to to temporary path {save_path}.")
+    print(f"{datetime.datetime.now()}: Downloading VTT file to temporary path {save_path}.")
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         with open(save_path, 'wb') as file:
