@@ -5,7 +5,6 @@ import time
 import requests
 from dotenv import load_dotenv
 from flask import Flask, request
-from flask_caching import Cache
 from slack_sdk import WebClient
 
 print(f"{datetime.datetime.now()}: LabelMaker is starting up. Let's make some labels!")
