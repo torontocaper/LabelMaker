@@ -4,7 +4,7 @@ from datetime import datetime
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 from slack_sdk import WebClient
 
 print(f"{datetime.now()}: LabelMaker is starting up. Let's make some labels!")
@@ -20,6 +20,10 @@ headers = {"Authorization": "Bearer " + bot_token}
 app = Flask(__name__)
 event_cache = []
 print(f"{datetime.now()}: Current event cache: {event_cache}.")
+
+@app.route("/")
+def serve_html():
+    return send_from_directory("static", "index.html")
 
 @app.route('/slack/events', methods=['POST'])
 def slack_event_handler():
