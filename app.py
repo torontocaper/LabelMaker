@@ -80,9 +80,19 @@ def slack_event_handler():
 
                 if "files" not in root_message:
                     print(f"{datetime.now()}: No file found. Exiting event handler.")
+                    client.chat_postMessage(
+                        channel=channel_id,
+                        text=f"Hey <@{user_id}>! Using the :label: emoji invokes me, LabelMaker. Try it on a file!",
+                        thread_ts=timestamp
+                    )
                     return "OK"
                 else:
                     print(f"{datetime.now()}: File found. Proceeding with file-handling steps.")
+                    client.chat_postMessage(
+                        channel=channel_id,
+                        text=f"Hey <@{user_id}>, thanks for using LabelMaker! Your Audacity labels file will be ready soon.",
+                        thread_ts=timestamp
+                    )
                     file_id = root_message["files"][0]["id"]
                     file_name = root_message["files"][0]["name"]
                     file_name_plain = os.path.splitext(file_name)[0]
@@ -95,7 +105,7 @@ def slack_event_handler():
                     client.files_upload_v2(
                     channel=channel_id,
                     thread_ts=timestamp,
-                    initial_comment="Thanks for using LabelMaker! Here's your labels file:",
+                    initial_comment=f"Hey again <@{user_id}>, here's your labels file. Thanks for using LabelMaker!",
                     file=finished_txt_file
                 )
                     os.remove(vtt_file_for_conversion)
