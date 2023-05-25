@@ -13,7 +13,7 @@ print(f"{datetime.now()}: LabelMaker is starting up. Let's make some labels!")
 load_dotenv()
 
 # get the bot token for authentication and fire up the slack client
-bot_token = os.environ.get('BOT_TOKEN_DEV')
+bot_token = os.environ.get('BOT_TOKEN') # use "dev" token when local testing
 client = WebClient(token=bot_token)
 headers = {"Authorization": "Bearer " + bot_token}
 
