@@ -13,7 +13,7 @@ print(f"{datetime.now()}: LabelMaker is starting up. Let's make some labels!")
 load_dotenv()
 
 # get the bot token for authentication and fire up the slack client
-bot_token = os.environ.get('BOT_TOKEN')
+bot_token = os.environ.get('BOT_TOKEN_DEV')
 client = WebClient(token=bot_token)
 headers = {"Authorization": "Bearer " + bot_token}
 
@@ -84,10 +84,12 @@ def slack_event_handler():
                 else:
                     print(f"{datetime.now()}: File found. Proceeding with file-handling steps.")
                     file_id = root_message["files"][0]["id"]
+                    file_name = root_message["files"][0]["name"]
+                    file_name_plain = os.path.splitext(file_name)[0]
                     file_vtt = get_file_info(file_id)
-                    save_location = event_id + '.vtt'
+                    save_location = file_name_plain + '.vtt'
                     vtt_file_for_conversion = download_vtt_file(file_vtt, save_location)
-                    txt_file_output = event_id + ".txt"
+                    txt_file_output = "LABELS-" + file_name_plain + ".txt"
                     finished_txt_file = convert_vtt_to_labels(vtt_file_for_conversion, txt_file_output)
                     print(f"{datetime.now()}: Uploading labels file to Slack.")
                     client.files_upload_v2(
@@ -108,10 +110,12 @@ def slack_event_handler():
 
 def get_file_info(file_id):
     print(f"{datetime.now()}: Attempting to get VTT file from Slack. This may take some time.")
+    number_of_attempts = 1
     response = client.files_info(file=file_id)
     while "vtt" not in response["file"]:
-        print(f"{datetime.now()}: Slack has not generated a VTT file yet. Waiting 1 second, then re-trying.")
+        print(f"{datetime.now()}: Slack has not generated a VTT file yet. That was attempt number {str(number_of_attempts)}. Waiting 1 second, then re-trying.")
         time.sleep(1.0)
+        number_of_attempts += 1
         response = client.files_info(file=file_id)
     print(f"{datetime.now()}: Transcript generated, link found. Proceeding with download.")
     vtt_link = response["file"]["vtt"]
